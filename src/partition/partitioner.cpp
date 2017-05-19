@@ -173,6 +173,8 @@ int Partitioner::Run(const PartitionConfig &config)
                     << " bit size " << std::ceil(std::log2(level_to_num_cells[level] + 1));
     }
 
+    renumberGraph(*edge_based_graph, partitions);
+
     TIMER_START(packed_mlp);
     MultiLevelPartition mlp{partitions, level_to_num_cells};
     TIMER_STOP(packed_mlp);
