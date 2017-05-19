@@ -21,6 +21,8 @@ namespace partition
 
 struct EdgeBasedGraphEdgeData : extractor::EdgeBasedEdge::EdgeData
 {
+    using Base = extractor::EdgeBasedEdge::EdgeData;
+    using Base::Base;
     // We need to write out the full edge based graph again.
 
     // TODO: in case we want to modify the graph we need to store a boundary_arc flag here
