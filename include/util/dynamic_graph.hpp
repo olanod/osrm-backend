@@ -3,6 +3,7 @@
 
 #include "util/deallocating_vector.hpp"
 #include "util/integer_range.hpp"
+#include "util/permutation.hpp"
 #include "util/typedefs.hpp"
 
 #include "storage/io_fwd.hpp"
@@ -329,6 +330,32 @@ template <typename EdgeDataT> class DynamicGraph
             }
         }
         return current_iterator;
+    }
+
+    void Renumber(const std::vector<NodeID> &old_to_new_node)
+    {
+        util::inplacePermutation(node_array.begin(), node_array.end(), old_to_new_node);
+
+        // Build up edge permutation
+        auto new_edge_index = 0;
+        std::vector<EdgeID> old_to_new_edge(number_of_edges, SPECIAL_EDGEID);
+        for (auto node : util::irange<NodeID>(0, number_of_nodes))
+        {
+            auto new_first_edge = new_edge_index;
+            // move all filled edges
+            for (auto edge : GetAdjacentEdgeRange(node))
+            {
+                old_to_new_edge[edge] = new_edge_index++;
+            }
+            // and all adjacent empty edges
+            for (auto edge = EndEdges(node); edge < number_of_edges && isDummy(edge); edge++)
+            {
+                old_to_new_edge[edge] = new_edge_index++;
+            }
+            node_array[node].first_edge = new_first_edge;
+        }
+
+        util::inplacePermutation(edge_list.begin(), edge_list.end(), old_to_new_edge);
     }
 
   protected:

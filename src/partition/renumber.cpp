@@ -35,6 +35,25 @@ std::vector<bool> markBorderNodes(const DynamicEdgeBasedGraph &graph,
 }
 }
 
+DynamicEdgeBasedGraph renumber(const DynamicEdgeBasedGraph &graph, const std::vector<std::uint32_t> &permutation)
+{
+    std::vector<std::uint32_t> order(permutation.size());
+    for (auto idx : util::irange<std::uint32_t>(0, permutation.size()))
+    {
+        order[permutation[idx]] = idx;
+    }
+
+    for (auto node : util::irange<NodeID>(0, graph.GetNumberOfNodes()))
+    {
+        for (auto edge : graph.GetAdjacentEdgeRange(node))
+        {
+            auto target = graph.GetTarget(edge);
+            renumbered_edges.push_back(
+
+        }
+    }
+}
+
 std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph, const std::vector<Partition> &partitions)
 {
     std::vector<std::uint32_t> permutation(graph.GetNumberOfNodes());
