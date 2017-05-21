@@ -35,8 +35,7 @@ std::vector<bool> markBorderNodes(const DynamicEdgeBasedGraph &graph,
 }
 }
 
-std::vector<std::uint32_t> computePartitionPermutation(const DynamicEdgeBasedGraph &graph,
-                                                       const std::vector<Partition> &partitions)
+std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph, const std::vector<Partition> &partitions)
 {
     std::vector<std::uint32_t> permutation(graph.GetNumberOfNodes());
     std::iota(permutation.begin(), permutation.end(), 0);
