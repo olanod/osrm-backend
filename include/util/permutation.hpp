@@ -15,18 +15,18 @@ void inplacePermutation(RandomAccesIterator begin,
                         RandomAccesIterator end,
                         const std::vector<IndexT> &old_to_new)
 {
-    auto size = std::distance(begin, end);
+    std::size_t size = std::distance(begin, end);
     BOOST_ASSERT(old_to_new.size() == size);
     // we need a little bit auxililary space since we need to mark
     // replaced elements in a non-destructive way
     std::vector<bool> was_replaced(size, false);
     for (auto index : util::irange<IndexT>(0, size))
     {
-        if (*was_replaced[index])
+        if (was_replaced[index])
             continue;
 
         // iterate over a cycle in the permutation
-        auto buffer = *begin;
+        auto buffer = begin[index];
         auto old_index = index;
         auto new_index = old_to_new[old_index];
         for (; new_index != index; old_index = new_index, new_index = old_to_new[new_index])

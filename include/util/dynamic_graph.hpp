@@ -334,17 +334,19 @@ template <typename EdgeDataT> class DynamicGraph
 
     void Renumber(const std::vector<NodeID> &old_to_new_node)
     {
-        util::inplacePermutation(node_array.begin(), node_array.end(), old_to_new_node);
+        // permutate everything but the sentinel
+        util::inplacePermutation(node_array.begin(), std::prev(node_array.end()), old_to_new_node);
 
         // Build up edge permutation
         auto new_edge_index = 0;
-        std::vector<EdgeID> old_to_new_edge(number_of_edges, SPECIAL_EDGEID);
+        std::vector<EdgeID> old_to_new_edge(edge_list.size(), SPECIAL_EDGEID);
         for (auto node : util::irange<NodeID>(0, number_of_nodes))
         {
             auto new_first_edge = new_edge_index;
             // move all filled edges
             for (auto edge : GetAdjacentEdgeRange(node))
             {
+                edge_list[edge].target = old_to_new_node[edge_list[edge].target];
                 old_to_new_edge[edge] = new_edge_index++;
             }
             // and all adjacent empty edges
@@ -354,6 +356,8 @@ template <typename EdgeDataT> class DynamicGraph
             }
             node_array[node].first_edge = new_first_edge;
         }
+        BOOST_ASSERT(std::find(old_to_new_edge.begin(), old_to_new_edge.end(), SPECIAL_EDGEID) ==
+                     old_to_new_edge.end());
 
         util::inplacePermutation(edge_list.begin(), edge_list.end(), old_to_new_edge);
     }
