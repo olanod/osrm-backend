@@ -589,16 +589,8 @@ Updater::LoadAndUpdateEdgeExpandedGraph(std::vector<extractor::EdgeBasedEdge> &e
     std::vector<util::Coordinate> coordinates;
     extractor::PackedOSMIDs osm_node_ids;
 
-    {
-        storage::io::FileReader reader(config.edge_based_graph_path,
-                                       storage::io::FileReader::VerifyFingerprint);
-        auto num_edges = reader.ReadElementCount64();
-        edge_based_edge_list.resize(num_edges);
-        max_edge_id = reader.ReadOne<EdgeID>();
-        reader.ReadInto(edge_based_edge_list);
-
-        extractor::files::readNodes(config.node_based_nodes_data_path, coordinates, osm_node_ids);
-    }
+    extractor::files::readEdgeBasedGraph(config.edge_based_graph_path, max_edge_id, edge_based_edge_list);
+    extractor::files::readNodes(config.node_based_nodes_data_path, coordinates, osm_node_ids);
 
     const bool update_conditional_turns =
         !config.turn_restrictions_path.empty() && config.valid_now;

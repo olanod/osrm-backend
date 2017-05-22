@@ -130,10 +130,10 @@ int Partitioner::Run(const PartitionConfig &config)
     extractor::files::readNBGMapping(config.cnbg_ebg_mapping_path.string(), mapping);
     util::Log() << "Loaded node based graph to edge based graph mapping";
 
-    auto edge_based_graph = LoadEdgeBasedGraph(config.edge_based_graph_path.string());
+    auto edge_based_graph = LoadEdgeBasedGraph(config.edge_based_graph_path);
     util::Log() << "Loaded edge based graph for mapping partition ids: "
-                << edge_based_graph->GetNumberOfEdges() << " edges, "
-                << edge_based_graph->GetNumberOfNodes() << " nodes";
+                << edge_based_graph.GetNumberOfEdges() << " edges, "
+                << edge_based_graph.GetNumberOfNodes() << " nodes";
 
     // TODO: node based graph to edge based graph partition id mapping should be done split off.
 
@@ -141,7 +141,7 @@ int Partitioner::Run(const PartitionConfig &config)
     const auto &node_based_partition_ids = recursive_bisection.BisectionIDs();
 
     // Partition ids, keyed by edge based graph nodes
-    std::vector<NodeID> edge_based_partition_ids(edge_based_graph->GetNumberOfNodes(),
+    std::vector<NodeID> edge_based_partition_ids(edge_based_graph.GetNumberOfNodes(),
                                                  SPECIAL_NODEID);
 
     // Only resolve all easy cases in the first pass
@@ -164,7 +164,7 @@ int Partitioner::Run(const PartitionConfig &config)
     std::tie(partitions, level_to_num_cells) =
         bisectionToPartition(edge_based_partition_ids, config.max_cell_sizes);
 
-    auto num_unconnected = removeUnconnectedBoundaryNodes(*edge_based_graph, partitions);
+    auto num_unconnected = removeUnconnectedBoundaryNodes(edge_based_graph, partitions);
     util::Log() << "Fixed " << num_unconnected << " unconnected nodes";
 
     util::Log() << "Edge-based-graph annotation:";
@@ -175,8 +175,8 @@ int Partitioner::Run(const PartitionConfig &config)
     }
 
     TIMER_START(renumber);
-    auto permutation = makePermutation(*edge_based_graph, partitions);
-    renumber(*edge_based_graph, permutation);
+    auto permutation = makePermutation(edge_based_graph, partitions);
+    renumber(edge_based_graph, permutation);
     renumber(partitions, permutation);
     TIMER_STOP(renumber);
     util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
@@ -187,7 +187,7 @@ int Partitioner::Run(const PartitionConfig &config)
     util::Log() << "MultiLevelPartition constructed in " << TIMER_SEC(packed_mlp) << " seconds";
 
     TIMER_START(cell_storage);
-    CellStorage storage(mlp, *edge_based_graph);
+    CellStorage storage(mlp, edge_based_graph);
     TIMER_STOP(cell_storage);
     util::Log() << "CellStorage constructed in " << TIMER_SEC(cell_storage) << " seconds";
 

@@ -4,6 +4,7 @@
 #include "partition/edge_based_graph.hpp"
 
 #include "extractor/edge_based_edge.hpp"
+#include "extractor/files.hpp"
 #include "storage/io.hpp"
 #include "util/coordinate.hpp"
 #include "util/dynamic_graph.hpp"
@@ -125,55 +126,16 @@ std::vector<OutputEdgeT> prepareEdgesForUsageInGraph(std::vector<extractor::Edge
     return graph_edges;
 }
 
-struct EdgeBasedGraphReader
+inline DynamicEdgeBasedGraph LoadEdgeBasedGraph(const boost::filesystem::path &path)
 {
-    EdgeBasedGraphReader(storage::io::FileReader &reader)
-    {
-        // Reads:  | Fingerprint | #e | max_eid | edges |
-        // - uint64: number of edges
-        // - EdgeID: max edge id
-        // - extractor::EdgeBasedEdge edges
-        //
-        // Gets written in Extractor::WriteEdgeBasedGraph
-
-        const auto num_edges = reader.ReadElementCount64();
-        const auto max_edge_id = reader.ReadOne<EdgeID>();
-
-        num_nodes = max_edge_id + 1;
-
-        edges.resize(num_edges);
-        reader.ReadInto(edges);
-    }
-
-    // FIXME: wrapped in unique_ptr since dynamic_graph is not move-able
-
-    std::unique_ptr<DynamicEdgeBasedGraph> BuildEdgeBasedGraph()
-    {
-        // FIXME: The following is a rough adaption from:
-        // - adaptToContractorInput
-        // - GraphContractor::GraphContractor
-        // and should really be abstracted over.
-        // FIXME: edges passed as a const reference, can be changed pass-by-value if can be moved
-
-        auto directed = splitBidirectionalEdges(edges);
-        auto tidied = prepareEdgesForUsageInGraph<DynamicEdgeBasedGraphEdge>(std::move(directed));
-
-        return std::make_unique<DynamicEdgeBasedGraph>(num_nodes, std::move(tidied));
-    }
-
-  private:
+    EdgeID max_node_id;
     std::vector<extractor::EdgeBasedEdge> edges;
-    std::size_t num_nodes;
-};
+    extractor::files::readEdgeBasedGraph(path, max_node_id, edges);
 
-inline std::unique_ptr<DynamicEdgeBasedGraph> LoadEdgeBasedGraph(const std::string &path)
-{
-    const auto fingerprint = storage::io::FileReader::VerifyFingerprint;
-    storage::io::FileReader reader(path, fingerprint);
+    auto directed = splitBidirectionalEdges(edges);
+    auto tidied = prepareEdgesForUsageInGraph<DynamicEdgeBasedGraphEdge>(std::move(directed));
 
-    EdgeBasedGraphReader builder{reader};
-
-    return builder.BuildEdgeBasedGraph();
+    return DynamicEdgeBasedGraph(max_node_id + 1, std::move(tidied));
 }
 
 } // ns partition
