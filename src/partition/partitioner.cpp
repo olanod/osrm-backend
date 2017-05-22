@@ -194,6 +194,7 @@ int Partitioner::Run(const PartitionConfig &config)
     TIMER_START(writing_mld_data);
     files::writePartition(config.mld_partition_path, mlp);
     files::writeCells(config.mld_storage_path, storage);
+    extractor::files::writeEdgeBasedGraph(config.edge_based_graph_path, edge_based_graph.GetNumberOfNodes() - 1, graphToEdges(edge_based_graph));
     TIMER_STOP(writing_mld_data);
     util::Log() << "MLD data writing took " << TIMER_SEC(writing_mld_data) << " seconds";
 
