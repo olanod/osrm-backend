@@ -8,6 +8,7 @@
 #include "partition/multi_level_partition.hpp"
 #include "partition/recursive_bisection.hpp"
 #include "partition/remove_unconnected.hpp"
+#include "partition/renumber.hpp"
 
 #include "extractor/files.hpp"
 
@@ -172,6 +173,13 @@ int Partitioner::Run(const PartitionConfig &config)
         util::Log() << "  level " << level + 1 << " #cells " << level_to_num_cells[level]
                     << " bit size " << std::ceil(std::log2(level_to_num_cells[level] + 1));
     }
+
+    TIMER_START(renumber);
+    auto permutation = makePermutation(*edge_based_graph, partitions);
+    renumber(*edge_based_graph, permutation);
+    renumber(partitions, permutation);
+    TIMER_STOP(renumber);
+    util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
 
     TIMER_START(packed_mlp);
     MultiLevelPartition mlp{partitions, level_to_num_cells};
