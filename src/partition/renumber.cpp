@@ -35,42 +35,27 @@ std::vector<bool> markBorderNodes(const DynamicEdgeBasedGraph &graph,
 }
 }
 
-DynamicEdgeBasedGraph renumber(const DynamicEdgeBasedGraph &graph, const std::vector<std::uint32_t> &permutation)
-{
-    std::vector<std::uint32_t> order(permutation.size());
-    for (auto idx : util::irange<std::uint32_t>(0, permutation.size()))
-    {
-        order[permutation[idx]] = idx;
-    }
-
-    for (auto node : util::irange<NodeID>(0, graph.GetNumberOfNodes()))
-    {
-        for (auto edge : graph.GetAdjacentEdgeRange(node))
-        {
-            auto target = graph.GetTarget(edge);
-            renumbered_edges.push_back(
-
-        }
-    }
-}
-
 std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph, const std::vector<Partition> &partitions)
 {
-    std::vector<std::uint32_t> permutation(graph.GetNumberOfNodes());
-    std::iota(permutation.begin(), permutation.end(), 0);
+    std::vector<std::uint32_t> ordering(graph.GetNumberOfNodes());
+    std::iota(ordering.begin(), ordering.end(), 0);
 
     for (const auto &partition : partitions)
     {
         std::stable_sort(
-            permutation.begin(), permutation.end(), [&partition](const auto lhs, const auto rhs) {
+            ordering.begin(), ordering.end(), [&partition](const auto lhs, const auto rhs) {
                 return partition[lhs] < partition[rhs];
             });
     }
 
     auto is_border_nodes = markBorderNodes(graph, partitions);
-    std::stable_partition(permutation.begin(),
-                          permutation.end(),
+    std::stable_partition(ordering.begin(),
+                          ordering.end(),
                           [&is_border_nodes](const auto node) { return is_border_nodes[node]; });
+
+    std::vector<std::uint32_t> permutation(ordering.size());
+    for (auto index : util::irange<std::uint32_t>(0, ordering.size()))
+        permutation[ordering[index]] = index;
 
     return permutation;
 }

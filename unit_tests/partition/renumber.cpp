@@ -42,12 +42,13 @@ BOOST_AUTO_TEST_SUITE(renumber_tests)
 
 BOOST_AUTO_TEST_CASE(unsplitable_case)
 {
-    // node:                0  1  2  3  4  5  6  7  8  9  10 11
-    // border:              x        x  x     x  x        x  x
-    // sorted by cells:     0  1  2  5  6 10 11  7  8  9  3  4
-    // permutation by cell: 0  1  2 10 11  3  4  7  8  9  5  6
-    //                      x        x  x  x  x  x           x
-    // permuation:          0 10  3 11  4  7  6  1  2  8  9  5
+    // node:                 0  1  2  3  4  5  6  7  8  9  10 11
+    // border:               x        x  x     x  x        x  x
+    // permutation by cells: 0  1  2  5  6 10 11  7  8  9  3  4
+    // order by cell:        0  1  2 10 11  3  4  7  8  9  5  6
+    //                       x        x  x  x  x  x           x
+    // order:                0 10  3 11  4  7  6  1  2  8  9  5
+    // permutation:          0  7  8  2  4 11  6  5  9 10  1  3
     std::vector<CellID> l1{{0, 0, 1, 2, 3, 5, 5, 3, 4, 4, 1, 2}};
     std::vector<CellID> l2{{0, 0, 0, 1, 1, 3, 3, 1, 2, 2, 0, 1}};
     std::vector<CellID> l3{{0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1}};
@@ -75,7 +76,7 @@ BOOST_AUTO_TEST_CASE(unsplitable_case)
     std::vector<Partition> partitions {l1, l2, l3, l4};
 
     auto permutation = makePermutation(graph, partitions);
-    CHECK_EQUAL_RANGE(permutation, 0, 10, 3, 11, 4, 7, 6, 1, 2, 8, 9, 5);
+    CHECK_EQUAL_RANGE(permutation, 0, 7, 8, 2, 4, 11, 6, 5, 9, 10, 1,3);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
