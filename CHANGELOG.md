@@ -6,7 +6,7 @@
       - .osrm.nodes file was renamed to .nbg_nodes and .ebg_nodes was added
     - Guidance
       - #4075 Changed counting of exits on service roundabouts
-
+      - #4074: fixed a bug that would announce entering highway ramps as u-turns
 
 # 5.7.1
     - Bugfixes
