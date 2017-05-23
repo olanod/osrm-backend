@@ -161,7 +161,7 @@ double getNetworkDistance(SearchEngineData<Algorithm> &engine_working_data,
     forward_heap.Clear();
     reverse_heap.Clear();
 
-    insertNodesInHeaps(forward_heap, reverse_heap, {source_phantom, target_phantom});
+    insertNodesInHeaps(facade, forward_heap, reverse_heap, {source_phantom, target_phantom});
 
     EdgeWeight weight = INVALID_EDGE_WEIGHT;
     std::vector<NodeID> packed_path;
@@ -394,7 +394,7 @@ double getNetworkDistance(SearchEngineData<Algorithm> &engine_working_data,
     forward_heap.Clear();
     reverse_heap.Clear();
 
-    insertNodesInHeaps(forward_heap, reverse_heap, {source_phantom, target_phantom});
+    insertNodesInHeaps(facade, forward_heap, reverse_heap, {source_phantom, target_phantom});
 
     EdgeWeight weight = INVALID_EDGE_WEIGHT;
     std::vector<NodeID> packed_path;
