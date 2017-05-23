@@ -8,34 +8,35 @@ namespace partition
 {
 namespace
 {
-// Returns a vector that is indexed by node ID marking all border edges of graph
-std::vector<bool> markBorderNodes(const DynamicEdgeBasedGraph &graph,
-                                  const std::vector<Partition> &partitions)
+// Returns a vector that is indexed by node ID marking the level at which it is a border node
+std::vector<LevelID> getHighestBorderLevel(const DynamicEdgeBasedGraph &graph,
+                                           const std::vector<Partition> &partitions)
 {
-    std::vector<bool> is_border_nodes(graph.GetNumberOfNodes(), false);
+    std::vector<LevelID> border_level(graph.GetNumberOfNodes(), 0);
 
-    // Since this is a multi-level partition every node that is a border node
-    // on a higher level, is also a border node on all levels below.
-    const auto first_level_partition = partitions.front();
-
-    for (auto node : util::irange<NodeID>(0, graph.GetNumberOfNodes()))
+    for (const auto level : util::irange<LevelID>(1, partitions.size() + 1))
     {
-        for (auto edge : graph.GetAdjacentEdgeRange(node))
+        const auto &partition = partitions[level - 1];
+        for (auto node : util::irange<NodeID>(0, graph.GetNumberOfNodes()))
         {
-            auto target = graph.GetTarget(edge);
-            if (first_level_partition[node] != first_level_partition[target])
+            for (auto edge : graph.GetAdjacentEdgeRange(node))
             {
-                is_border_nodes[node] = true;
-                is_border_nodes[target] = true;
+                auto target = graph.GetTarget(edge);
+                if (partition[node] != partition[target])
+                {
+                    border_level[node] = level;
+                    border_level[target] = level;
+                }
             }
         }
     }
 
-    return is_border_nodes;
+    return border_level;
 }
 }
 
-std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph, const std::vector<Partition> &partitions)
+std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph,
+                                           const std::vector<Partition> &partitions)
 {
     std::vector<std::uint32_t> ordering(graph.GetNumberOfNodes());
     std::iota(ordering.begin(), ordering.end(), 0);
@@ -48,10 +49,11 @@ std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph, c
             });
     }
 
-    auto is_border_nodes = markBorderNodes(graph, partitions);
-    std::stable_partition(ordering.begin(),
-                          ordering.end(),
-                          [&is_border_nodes](const auto node) { return is_border_nodes[node]; });
+    auto border_level = getHighestBorderLevel(graph, partitions);
+    std::stable_sort(
+        ordering.begin(), ordering.end(), [&border_level](const auto lhs, const auto rhs) {
+            return border_level[lhs] > border_level[rhs];
+        });
 
     std::vector<std::uint32_t> permutation(ordering.size());
     for (auto index : util::irange<std::uint32_t>(0, ordering.size()))
