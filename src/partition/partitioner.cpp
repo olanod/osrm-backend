@@ -18,6 +18,7 @@
 #include "util/integer_range.hpp"
 #include "util/json_container.hpp"
 #include "util/log.hpp"
+#include "util/mmap_file.hpp"
 
 #include <algorithm>
 #include <iterator>
@@ -178,6 +179,11 @@ int Partitioner::Run(const PartitionConfig &config)
     auto permutation = makePermutation(edge_based_graph, partitions);
     renumber(edge_based_graph, permutation);
     renumber(partitions, permutation);
+    {
+        boost::iostreams::mapped_file segment_region;
+        auto segments = util::mmapFile<extractor::EdgeBasedNodeSegment>(config.file_index_path, segment_region);
+        renumber(segments, permutation);
+    }
     TIMER_STOP(renumber);
     util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
 
@@ -192,8 +198,8 @@ int Partitioner::Run(const PartitionConfig &config)
     util::Log() << "CellStorage constructed in " << TIMER_SEC(cell_storage) << " seconds";
 
     TIMER_START(writing_mld_data);
-    files::writePartition(config.mld_partition_path, mlp);
-    files::writeCells(config.mld_storage_path, storage);
+    files::writePartition(config.partition_path, mlp);
+    files::writeCells(config.storage_path, storage);
     extractor::files::writeEdgeBasedGraph(config.edge_based_graph_path, edge_based_graph.GetNumberOfNodes() - 1, graphToEdges(edge_based_graph));
     TIMER_STOP(writing_mld_data);
     util::Log() << "MLD data writing took " << TIMER_SEC(writing_mld_data) << " seconds";

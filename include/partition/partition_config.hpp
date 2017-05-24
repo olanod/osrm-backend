@@ -38,9 +38,9 @@ struct PartitionConfig
         edge_based_graph_path = basepath + ".osrm.ebg";
         compressed_node_based_graph_path = basepath + ".osrm.cnbg";
         cnbg_ebg_mapping_path = basepath + ".osrm.cnbg_to_ebg";
+        file_index_path = basepath + ".osrm.fileIndex";
         partition_path = basepath + ".osrm.partition";
-        mld_partition_path = basepath + ".osrm.partition";
-        mld_storage_path = basepath + ".osrm.cells";
+        storage_path = basepath + ".osrm.cells";
     }
 
     // might be changed to the node based graph at some point
@@ -49,8 +49,8 @@ struct PartitionConfig
     boost::filesystem::path compressed_node_based_graph_path;
     boost::filesystem::path cnbg_ebg_mapping_path;
     boost::filesystem::path partition_path;
-    boost::filesystem::path mld_partition_path;
-    boost::filesystem::path mld_storage_path;
+    boost::filesystem::path file_index_path;
+    boost::filesystem::path storage_path;
 
     unsigned requested_num_threads;
 
