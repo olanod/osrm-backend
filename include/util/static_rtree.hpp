@@ -12,6 +12,7 @@
 #include "util/typedefs.hpp"
 #include "util/vector_view.hpp"
 #include "util/web_mercator.hpp"
+#include "util/mmap_file.hpp"
 
 #include "osrm/coordinate.hpp"
 
@@ -454,13 +455,9 @@ class StaticRTree
 
             tree_node_file.WriteOne(size_of_tree);
             tree_node_file.WriteFrom(m_search_tree);
-
-            tree_node_file.WriteOne(static_cast<std::uint64_t>(m_tree_level_sizes.size()));
-            tree_node_file.WriteFrom(m_tree_level_sizes);
         }
-        // Map the leaf nodes file so that the r-tree object is immediately usable (i.e. the
-        // constructor doesn't just build and serialize the tree, it gives us a usable r-tree).
-        MapLeafNodesFile(leaf_node_filename);
+
+        m_objects = mmapFile<EdgeDataT>(leaf_node_filename, m_objects_region);
     }
 
     /**
@@ -490,7 +487,7 @@ class StaticRTree
                          m_tree_level_sizes.end() - 1,
                          std::back_inserter(m_tree_level_starts));
 
-        MapLeafNodesFile(leaf_file);
+        m_objects = mmapFile<EdgeDataT>(leaf_file, m_objects_region);
     }
 
     /**
@@ -514,30 +511,7 @@ class StaticRTree
         std::partial_sum(m_tree_level_sizes.begin(),
                          m_tree_level_sizes.end() - 1,
                          std::back_inserter(m_tree_level_starts));
-        MapLeafNodesFile(leaf_file);
-    }
-
-    /**
-     * mmap()s the .fileIndex file and wrapps it in a read-only vector_view object
-     * for easy access.
-     */
-    void MapLeafNodesFile(const boost::filesystem::path &leaf_file)
-    {
-        // open leaf node file and return a pointer to the mapped leaves data
-        try
-        {
-            m_objects_region.open(leaf_file);
-            std::size_t num_objects = m_objects_region.size() / sizeof(EdgeDataT);
-            auto data_ptr = m_objects_region.data();
-            BOOST_ASSERT(reinterpret_cast<uintptr_t>(data_ptr) % alignof(EdgeDataT) == 0);
-            m_objects.reset(reinterpret_cast<const EdgeDataT *>(data_ptr), num_objects);
-        }
-        catch (const std::exception &exc)
-        {
-            throw exception(boost::str(boost::format("Leaf file %1% mapping failed: %2%") %
-                                       leaf_file % exc.what()) +
-                            SOURCE_REF);
-        }
+        m_objects = mmapFile<EdgeDataT>(leaf_file, m_objects_region);
     }
 
     /* Returns all features inside the bounding box.
