@@ -41,6 +41,7 @@ struct PartitionConfig
         file_index_path = basepath + ".osrm.fileIndex";
         partition_path = basepath + ".osrm.partition";
         storage_path = basepath + ".osrm.cells";
+        node_data_path = basepath + ".osrm.ebg_nodes";
     }
 
     // might be changed to the node based graph at some point
@@ -51,6 +52,7 @@ struct PartitionConfig
     boost::filesystem::path partition_path;
     boost::filesystem::path file_index_path;
     boost::filesystem::path storage_path;
+    boost::filesystem::path node_data_path;
 
     unsigned requested_num_threads;
 

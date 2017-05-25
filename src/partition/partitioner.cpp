@@ -184,6 +184,12 @@ int Partitioner::Run(const PartitionConfig &config)
         auto segments = util::mmapFile<extractor::EdgeBasedNodeSegment>(config.file_index_path, segment_region);
         renumber(segments, permutation);
     }
+    {
+        extractor::EdgeBasedNodeDataContainer node_data;
+        extractor::files::readNodeData(config.node_data_path, node_data);
+        renumber(node_data, permutation);
+        extractor::files::writeNodeData(config.node_data_path, node_data);
+    }
     TIMER_STOP(renumber);
     util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
 
