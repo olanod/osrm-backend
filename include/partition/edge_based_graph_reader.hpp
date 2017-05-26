@@ -134,7 +134,8 @@ std::vector<extractor::EdgeBasedEdge> graphToEdges(const DynamicEdgeBasedGraph &
     auto range = tbb::blocked_range<NodeID>(0, edge_based_graph.GetNumberOfNodes());
     auto max_turn_id =
         tbb::parallel_reduce(range, NodeID{0},
-                             [&edge_based_graph](const auto range, const NodeID &max_turn_id) {
+                             [&edge_based_graph](const auto range, NodeID initial) {
+                                 NodeID max_turn_id = initial;
                                  for (auto node = range.begin(); node < range.end(); ++node)
                                  {
                                      for (auto edge : edge_based_graph.GetAdjacentEdgeRange(node))
@@ -143,6 +144,7 @@ std::vector<extractor::EdgeBasedEdge> graphToEdges(const DynamicEdgeBasedGraph &
                                          max_turn_id = std::max(max_turn_id, data.turn_id);
                                      }
                                  }
+                                 return max_turn_id;
                              },
                              [](const NodeID lhs, const NodeID rhs) { return std::max(lhs, rhs); });
 

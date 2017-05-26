@@ -12,6 +12,9 @@
 
 #include "extractor/files.hpp"
 
+// we need this for potential renumbering
+#include "contractor/files.hpp"
+
 #include "util/coordinate.hpp"
 #include "util/geojson_debug_logger.hpp"
 #include "util/geojson_debug_policies.hpp"
@@ -25,6 +28,7 @@
 #include <vector>
 
 #include <boost/assert.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "util/geojson_debug_logger.hpp"
 #include "util/geojson_debug_policies.hpp"
@@ -181,7 +185,8 @@ int Partitioner::Run(const PartitionConfig &config)
     renumber(partitions, permutation);
     {
         boost::iostreams::mapped_file segment_region;
-        auto segments = util::mmapFile<extractor::EdgeBasedNodeSegment>(config.file_index_path, segment_region);
+        auto segments =
+            util::mmapFile<extractor::EdgeBasedNodeSegment>(config.file_index_path, segment_region);
         renumber(segments, permutation);
     }
     {
@@ -189,6 +194,16 @@ int Partitioner::Run(const PartitionConfig &config)
         extractor::files::readNodeData(config.node_data_path, node_data);
         renumber(node_data, permutation);
         extractor::files::writeNodeData(config.node_data_path, node_data);
+    }
+    if (boost::filesystem::exists(config.hsgr_path))
+    {
+        contractor::QueryGraph contracted_graph;
+        unsigned checksum;
+        contractor::files::readGraph(config.hsgr_path, checksum, contracted_graph);
+        renumber(contracted_graph, permutation);
+        checksum += 1; // this is just a value used to determine if we need to invalidate hints
+                       // hence we just bump it here without recomputing it
+        contractor::files::writeGraph(config.hsgr_path, checksum, contracted_graph);
     }
     TIMER_STOP(renumber);
     util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
@@ -206,7 +221,9 @@ int Partitioner::Run(const PartitionConfig &config)
     TIMER_START(writing_mld_data);
     files::writePartition(config.partition_path, mlp);
     files::writeCells(config.storage_path, storage);
-    extractor::files::writeEdgeBasedGraph(config.edge_based_graph_path, edge_based_graph.GetNumberOfNodes() - 1, graphToEdges(edge_based_graph));
+    extractor::files::writeEdgeBasedGraph(config.edge_based_graph_path,
+                                          edge_based_graph.GetNumberOfNodes() - 1,
+                                          graphToEdges(edge_based_graph));
     TIMER_STOP(writing_mld_data);
     util::Log() << "MLD data writing took " << TIMER_SEC(writing_mld_data) << " seconds";
 

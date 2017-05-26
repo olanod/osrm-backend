@@ -7,6 +7,9 @@
 #include "partition/bisection_to_partition.hpp"
 #include "partition/edge_based_graph.hpp"
 
+#include "util/static_graph.hpp"
+#include "util/dynamic_graph.hpp"
+
 namespace osrm
 {
 namespace partition
@@ -14,9 +17,17 @@ namespace partition
 std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph,
                                            const std::vector<Partition> &partitions);
 
-inline void renumber(DynamicEdgeBasedGraph &graph, const std::vector<std::uint32_t> &permutation)
+template<typename EdgeDataT>
+inline void renumber(util::DynamicGraph<EdgeDataT> &graph, const std::vector<std::uint32_t> &permutation)
 {
-    // Graph has own specilization
+    // dynamic graph has own specilization
+    graph.Renumber(permutation);
+}
+
+template<typename EdgeDataT>
+inline void renumber(util::StaticGraph<EdgeDataT> &graph, const std::vector<std::uint32_t> &permutation)
+{
+    // static graph has own specilization
     graph.Renumber(permutation);
 }
 
