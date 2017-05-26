@@ -24,6 +24,9 @@ std::vector<LevelID> getHighestBorderLevel(const DynamicEdgeBasedGraph &graph,
                 auto target = graph.GetTarget(edge);
                 if (partition[node] != partition[target])
                 {
+                    // level is monotone increasing so we wil
+                    // always overwrite here with a value equal
+                    // or greater then the current border_level
                     border_level[node] = level;
                     border_level[target] = level;
                 }
@@ -41,6 +44,8 @@ std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph,
     std::vector<std::uint32_t> ordering(graph.GetNumberOfNodes());
     std::iota(ordering.begin(), ordering.end(), 0);
 
+    // Sort the nodes by cell ID recursively:
+    // Nodes in the same cell will be sorted by cell ID on the level below
     for (const auto &partition : partitions)
     {
         std::stable_sort(
@@ -49,6 +54,10 @@ std::vector<std::uint32_t> makePermutation(const DynamicEdgeBasedGraph &graph,
             });
     }
 
+    // Now sort the nodes by the level at which they are a border node, descening.
+    // That means nodes that are border nodes on the highest level will have a very low ID,
+    // whereas nodes that are nerver border nodes are sorted to the end of the array.
+    // Note: Since we use a stable sort that preserves the cell sorting within each level
     auto border_level = getHighestBorderLevel(graph, partitions);
     std::stable_sort(
         ordering.begin(), ordering.end(), [&border_level](const auto lhs, const auto rhs) {

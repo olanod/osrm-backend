@@ -10,6 +10,7 @@
 #include "util/dynamic_graph.hpp"
 #include "util/typedefs.hpp"
 
+#include <tbb/parallel_reduce.h>
 #include <tbb/parallel_sort.h>
 
 #include <cstdint>
@@ -130,18 +131,20 @@ std::vector<OutputEdgeT> prepareEdgesForUsageInGraph(std::vector<extractor::Edge
 
 std::vector<extractor::EdgeBasedEdge> graphToEdges(const DynamicEdgeBasedGraph &edge_based_graph)
 {
-    NodeID max_turn_id = 0;
     auto range = tbb::blocked_range<NodeID>(0, edge_based_graph.GetNumberOfNodes());
-    tbb::parallel_for(range, [&](const auto range) {
-        for (auto node = range.begin(); node < range.end(); ++node)
-        {
-            for (auto edge : edge_based_graph.GetAdjacentEdgeRange(node))
-            {
-                const auto &data = edge_based_graph.GetEdgeData(edge);
-                max_turn_id = std::max(max_turn_id, data.turn_id);
-            }
-        }
-    });
+    auto max_turn_id =
+        tbb::parallel_reduce(range, NodeID{0},
+                             [&edge_based_graph](const auto range, const NodeID &max_turn_id) {
+                                 for (auto node = range.begin(); node < range.end(); ++node)
+                                 {
+                                     for (auto edge : edge_based_graph.GetAdjacentEdgeRange(node))
+                                     {
+                                         const auto &data = edge_based_graph.GetEdgeData(edge);
+                                         max_turn_id = std::max(max_turn_id, data.turn_id);
+                                     }
+                                 }
+                             },
+                             [](const NodeID lhs, const NodeID rhs) { return std::max(lhs, rhs); });
 
     std::vector<extractor::EdgeBasedEdge> edges(max_turn_id + 1);
     tbb::parallel_for(range, [&](const auto range) {
