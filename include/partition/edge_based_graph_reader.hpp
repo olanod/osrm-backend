@@ -10,6 +10,8 @@
 #include "util/dynamic_graph.hpp"
 #include "util/typedefs.hpp"
 
+#include <tbb/parallel_sort.h>
+
 #include <cstdint>
 
 #include <algorithm>
@@ -126,28 +128,38 @@ std::vector<OutputEdgeT> prepareEdgesForUsageInGraph(std::vector<extractor::Edge
     return graph_edges;
 }
 
-std::vector<extractor::EdgeBasedEdge>
-graphToEdges(const DynamicEdgeBasedGraph& edge_based_graph)
+std::vector<extractor::EdgeBasedEdge> graphToEdges(const DynamicEdgeBasedGraph &edge_based_graph)
 {
-    std::vector<extractor::EdgeBasedEdge> edges;
-    edges.reserve(edge_based_graph.GetNumberOfEdges() * 2);
-
-    for (const auto node : util::irange<NodeID>(0, edge_based_graph.GetNumberOfNodes()))
-    {
-
-        for (auto edge: edge_based_graph.GetAdjacentEdgeRange(node))
+    NodeID max_turn_id = 0;
+    auto range = tbb::blocked_range<NodeID>(0, edge_based_graph.GetNumberOfNodes());
+    tbb::parallel_for(range, [&](const auto range) {
+        for (auto node = range.begin(); node < range.end(); ++node)
         {
-            const auto& data = edge_based_graph.GetEdgeData(edge);
-            // we only need to save the forward edges, since the read method will
-            // convert from forward to bi-directional edges again
-            if (data.forward)
+            for (auto edge : edge_based_graph.GetAdjacentEdgeRange(node))
             {
-                auto target = edge_based_graph.GetTarget(edge);
-                edges.emplace_back(node, target, data);
+                const auto &data = edge_based_graph.GetEdgeData(edge);
+                max_turn_id = std::max(max_turn_id, data.turn_id);
             }
         }
-    }
+    });
 
+    std::vector<extractor::EdgeBasedEdge> edges(max_turn_id + 1);
+    tbb::parallel_for(range, [&](const auto range) {
+        for (auto node = range.begin(); node < range.end(); ++node)
+        {
+            for (auto edge : edge_based_graph.GetAdjacentEdgeRange(node))
+            {
+                const auto &data = edge_based_graph.GetEdgeData(edge);
+                // we only need to save the forward edges, since the read method will
+                // convert from forward to bi-directional edges again
+                if (data.forward)
+                {
+                    auto target = edge_based_graph.GetTarget(edge);
+                    edges[data.turn_id] = extractor::EdgeBasedEdge{node, target, data};
+                }
+            }
+        }
+    });
     return edges;
 }
 
