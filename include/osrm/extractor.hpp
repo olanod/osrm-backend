@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef OSRM_EXTRACTOR_HPP
 #define OSRM_EXTRACTOR_HPP
 
+#include "osrm/errorcodes.hpp"
+
 namespace osrm
 {
 namespace extractor
@@ -43,7 +45,7 @@ struct ExtractorConfig;
  * \throws osrm::util::exception, osmium::io_error
  * \see Extractor, ExtractorConfig
  */
-void extract(const extractor::ExtractorConfig &config);
+ErrorCode extract(const extractor::ExtractorConfig &config);
 
 } // ns osrm
 

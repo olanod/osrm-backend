@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "osrm/osrm_fwd.hpp"
 #include "osrm/status.hpp"
+#include "osrm/errorcodes.hpp"
 
 #include <memory>
 #include <string>

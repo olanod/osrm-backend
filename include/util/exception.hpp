@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <string>
 #include <utility>
 
+#include "osrm/errorcodes.hpp"
 #include <boost/format.hpp>
 
 namespace osrm
@@ -53,6 +54,43 @@ class exception final : public std::exception
     // this header. (Caught by -Wweak-vtables under Clang.)
     virtual void anchor() const;
     const std::string message;
+};
+
+class internal_exception : public std::exception
+{
+  public:
+    explicit internal_exception(const char *detail, std::string sourceref, const ErrorCode code)
+        : detail(detail), sourceref(sourceref), errorcode(code)
+    {
+    }
+    explicit internal_exception(std::string detail, std::string sourceref, const ErrorCode code)
+        : detail(std::move(detail)), sourceref(sourceref), errorcode(code)
+    {
+    }
+    explicit internal_exception(boost::format detail, std::string sourceref, const ErrorCode code)
+        : detail(detail.str()), sourceref(sourceref), errorcode(code)
+    {
+    }
+    const char *what() const noexcept override
+    {
+        const auto message =
+            GetErrorDescription(errorcode) + ": " + detail + " (at " + sourceref + ")";
+        return message.c_str();
+    }
+    const char *where() const noexcept { return sourceref.c_str(); }
+    ErrorCode code() const noexcept { return errorcode; }
+
+  private:
+    // This function exists to 'anchor' the class, and stop the compiler from
+    // copying vtable and RTTI info into every object file that includes
+    // this header. (Caught by -Wweak-vtables under Clang.)
+    virtual void anchor() const;
+    const std::string detail;
+    const std::string sourceref; // Source location where the exception was raised
+
+    // Internal error code - should be interpreted as a value from #include <cerrno>
+    // should never be 0.
+    const ErrorCode errorcode;
 };
 }
 }

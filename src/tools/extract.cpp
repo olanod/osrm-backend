@@ -13,6 +13,7 @@
 #include <new>
 
 #include "util/meminfo.hpp"
+#include "osrm/errorcodes.hpp"
 
 using namespace osrm;
 
@@ -161,12 +162,12 @@ int main(int argc, char *argv[]) try
         return EXIT_FAILURE;
     }
 
-    osrm::extract(extractor_config);
+    auto extractor_result = osrm::extract(extractor_config);
 
     util::DumpSTXXLStats();
     util::DumpMemoryStats();
 
-    return EXIT_SUCCESS;
+    return extractor_result == NoError ? EXIT_SUCCESS : static_cast<int>(extractor_result);
 }
 catch (const std::bad_alloc &e)
 {
