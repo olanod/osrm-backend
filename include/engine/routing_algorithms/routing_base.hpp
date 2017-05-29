@@ -94,23 +94,24 @@ auto insertNodesInHeaps(const Facade &facade,
 
     if (source.forward_segment_id.enabled && !cross_forward)
     { //   0---1---2---3---(4-s==)5===6===end
-        const auto geometry_index = facade.GetGeometryIndex(source.forward_segment_id.id);
+        const auto node_id = source.forward_segment_id.id;
+        const auto geometry_index = facade.GetGeometryIndex(node_id);
         const auto weights = facade.GetUncompressedForwardWeights(geometry_index.id);
         if (areSegmentsValid(weights.begin() + source.fwd_segment_position, weights.end()))
         {
-            forward_heap.Insert(source.forward_segment_id.id, 0, source.forward_segment_id.id);
+            forward_heap.InsertVisited(node_id, 0, node_id);
             const auto weight = sumSegmentValues(weights.begin() + source.fwd_segment_position,
                                                  weights.end(),
                                                  source.fwd_segment_ratio,
                                                  1.);
-            for (auto edge : facade.GetAdjacentEdgeRange(source.forward_segment_id.id))
+            for (auto edge : facade.GetAdjacentEdgeRange(node_id))
             {
                 const auto &edge_data = facade.GetEdgeData(edge);
                 if (edge_data.forward)
                 {
                     forward_heap.Insert(facade.GetTarget(edge),
-                                        weight + facade.GetWeightPenaltyForEdgeID(edge),
-                                        source.forward_segment_id.id);
+                                        weight + facade.GetWeightPenaltyForEdgeID(edge_data.turn_id),
+                                        node_id);
                 }
             }
         }
@@ -118,30 +119,27 @@ auto insertNodesInHeaps(const Facade &facade,
 
     if (source.reverse_segment_id.enabled && !cross_reverse)
     { // end===6===5===4===3(=s--2)---1---0
-        const auto geometry_index = facade.GetGeometryIndex(source.reverse_segment_id.id);
+        const auto node_id = source.reverse_segment_id.id;
+        const auto geometry_index = facade.GetGeometryIndex(node_id);
         const auto weights = facade.GetUncompressedReverseWeights(geometry_index.id);
         if (areSegmentsValid(weights.end() - source.fwd_segment_position - 1, weights.end()))
         {
-            forward_heap.Insert(source.reverse_segment_id.id, 0, source.reverse_segment_id.id);
+            forward_heap.InsertVisited(node_id, 0, node_id);
             const auto weight = sumSegmentValues(weights.end() - source.fwd_segment_position - 1,
                                                  weights.end(),
                                                  1. - source.fwd_segment_ratio,
                                                  1.);
-            for (auto edge : facade.GetAdjacentEdgeRange(source.reverse_segment_id.id))
+            for (auto edge : facade.GetAdjacentEdgeRange(node_id))
             {
                 const auto &edge_data = facade.GetEdgeData(edge);
                 if (edge_data.forward)
                 {
                     forward_heap.Insert(facade.GetTarget(edge),
-                                        weight + facade.GetWeightPenaltyForEdgeID(edge),
-                                        source.reverse_segment_id.id);
+                                        weight + facade.GetWeightPenaltyForEdgeID(edge_data.turn_id),
+                                        node_id);
                 }
             }
         }
-
-        forward_heap.Insert(source.reverse_segment_id.id,
-                            -source.GetReverseWeightPlusOffset(),
-                            source.reverse_segment_id.id);
     }
 
     if (target.forward_segment_id.enabled && !cross_forward)
@@ -238,7 +236,6 @@ void annotatePath(const FacadeT &facade,
 
         const auto geometry_index = facade.GetGeometryIndex(node_id);
         std::vector<NodeID> id_vector;
-
         std::vector<EdgeWeight> weight_vector;
         std::vector<EdgeWeight> duration_vector;
         std::vector<DatasourceID> datasource_vector;
@@ -343,13 +340,13 @@ void annotatePath(const FacadeT &facade,
     // t: fwd_segment 3
     // -> (U, v), (v, w), (w, x)
     // note that (x, t) is _not_ included but needs to be added later.
-    for (std::size_t segment_idx = start_index; segment_idx != end_index;
-         (start_index < end_index ? ++segment_idx : --segment_idx))
+    BOOST_ASSERT(start_index <= end_index);
+    for (std::size_t segment_idx = start_index; segment_idx != end_index; ++segment_idx)
     {
         BOOST_ASSERT(segment_idx < id_vector.size() - 1);
         BOOST_ASSERT(facade.GetTravelMode(target_node_id) > 0);
         unpacked_path.push_back(
-            PathData{id_vector[start_index < end_index ? segment_idx + 1 : segment_idx - 1],
+            PathData{id_vector[segment_idx + 1],
                      facade.GetNameIndex(target_node_id),
                      weight_vector[segment_idx],
                      duration_vector[segment_idx],
