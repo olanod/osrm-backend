@@ -12,9 +12,6 @@
 
 #include "extractor/files.hpp"
 
-// we need this for potential renumbering
-#include "contractor/files.hpp"
-
 #include "util/coordinate.hpp"
 #include "util/geojson_debug_logger.hpp"
 #include "util/geojson_debug_policies.hpp"
@@ -197,16 +194,11 @@ int Partitioner::Run(const PartitionConfig &config)
     }
     if (boost::filesystem::exists(config.hsgr_path))
     {
-        contractor::QueryGraph contracted_graph;
-        unsigned checksum;
-        contractor::files::readGraph(config.hsgr_path, checksum, contracted_graph);
-        renumber(contracted_graph, permutation);
-        checksum += 1; // this is just a value used to determine if we need to invalidate hints
-                       // hence we just bump it here without recomputing it
-        contractor::files::writeGraph(config.hsgr_path, checksum, contracted_graph);
+        util::Log(logWARNING) << "Found existing .osrm.hsgr file, removing. You need to re-run osrm-contract after osrm-partition.";
+        boost::filesystem::remove(config.hsgr_path);
     }
     TIMER_STOP(renumber);
-    util::Log() << "Renumbered graph in " << TIMER_SEC(renumber) << " seconds";
+    util::Log() << "Renumbered data in " << TIMER_SEC(renumber) << " seconds";
 
     TIMER_START(packed_mlp);
     MultiLevelPartition mlp{partitions, level_to_num_cells};
