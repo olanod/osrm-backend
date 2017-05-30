@@ -455,6 +455,9 @@ class StaticRTree
 
             tree_node_file.WriteOne(size_of_tree);
             tree_node_file.WriteFrom(m_search_tree);
+
+            tree_node_file.WriteOne(static_cast<std::uint64_t>(m_tree_level_sizes.size()));
+            tree_node_file.WriteFrom(m_tree_level_sizes);
         }
 
         m_objects = mmapFile<EdgeDataT>(leaf_node_filename, m_objects_region);
