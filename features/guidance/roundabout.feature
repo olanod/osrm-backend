@@ -816,3 +816,28 @@ Feature: Basic Roundabout
             |    1 | f  | abcda,df,df | depart,roundabout-exit-2,arrive |
             |    1 | g  | abcda,ag,ag | depart,roundabout-exit-3,arrive |
             |    1 | h  | abcda,bh,bh | depart,roundabout-exit-4,arrive |
+
+    Scenario: Roundabout with a crossing road
+        Given the node map
+            """
+                  a          j
+                ╱   ╲        │
+            e——b——1——d——f——g—h——l
+                ╲   ╱       `i
+                  c          │
+                  │          │
+                  m          k
+            """
+
+        And the ways
+            | nodes   | highway  | junction   | oneway | #         |
+            | abcda   | tertiary | roundabout |        | circle    |
+            | ebdfghl | tertiary |            |        | road      |
+            | gi      | tertiary |            | yes    | sliproad  |
+            | jhik    | tertiary |            |        | crossroad |
+            | dm      | tertiary |            |        |           |
+
+        When I route I should get
+            | from | to | route                                | turns                                                              | distance |
+            | e    | k  | ebdfghl,ebdfghl,ebdfghl,gi,jhik,jhik | depart,rotary-exit-1,rotary-exit-1,invalid right,turn right,arrive | 119m     |
+            | 1    | k  | ebdfghl,ebdfghl,gi,jhik,jhik         | depart,rotary-exit-1,invalid right,turn right,arrive               | 89m      |
