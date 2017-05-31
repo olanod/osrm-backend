@@ -24,10 +24,9 @@ enum ErrorCode
     FileWriteError,
     FileIOError,
     UnexpectedEndOfFile,
-    __ENDMARKER__ // Leave this value at the end
+    IncompatibleDataset,
+    UnknownAlgorithm
 };
-
-const std::string GetErrorDescription(const ErrorCode code);
 }
 
 #endif // ERRORCODES_HPP

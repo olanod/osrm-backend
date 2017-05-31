@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define OSRM_EXCEPTION_HPP
 
 #include <exception>
+#include <iostream>
 #include <string>
 #include <utility>
 
@@ -40,7 +41,7 @@ namespace osrm
 namespace util
 {
 
-class exception final : public std::exception
+class exception : public std::exception
 {
   public:
     explicit exception(const char *message) : message(message) {}
@@ -56,41 +57,217 @@ class exception final : public std::exception
     const std::string message;
 };
 
-class internal_exception : public std::exception
+/**
+ * Indicates a class of error that occurred that was caused by some kind of
+ * external input (common examples are out of disk space, file permission errors,
+ * user supplied bad data, etc).
+ */
+class runtime_error : public std::runtime_error
 {
+    using Base = std::runtime_error;
+
+  protected:
+    explicit runtime_error(const char *message,
+                           const std::string &sourceref,
+                           const std::string &code_description)
+        : Base(message), sourceref(sourceref)
+    {
+        messagebuf = code_description + ": " + Base::what() + " (at " + sourceref + ")";
+    }
+    explicit runtime_error(std::string message,
+                           const std::string &sourceref,
+                           const std::string &code_description)
+        : runtime_error(message.c_str(), sourceref, code_description)
+    {
+    }
+
   public:
-    explicit internal_exception(const char *detail, std::string sourceref, const ErrorCode code)
-        : detail(detail), sourceref(sourceref), errorcode(code)
-    {
-    }
-    explicit internal_exception(std::string detail, std::string sourceref, const ErrorCode code)
-        : detail(std::move(detail)), sourceref(sourceref), errorcode(code)
-    {
-    }
-    explicit internal_exception(boost::format detail, std::string sourceref, const ErrorCode code)
-        : detail(detail.str()), sourceref(sourceref), errorcode(code)
-    {
-    }
-    const char *what() const noexcept override
-    {
-        const auto message =
-            GetErrorDescription(errorcode) + ": " + detail + " (at " + sourceref + ")";
-        return message.c_str();
-    }
+    const char *what() const noexcept override { return messagebuf.c_str(); }
     const char *where() const noexcept { return sourceref.c_str(); }
-    ErrorCode code() const noexcept { return errorcode; }
+    virtual ErrorCode GetCode() const = 0;
+    virtual std::string GetCodeDescription() const = 0;
 
   private:
     // This function exists to 'anchor' the class, and stop the compiler from
     // copying vtable and RTTI info into every object file that includes
     // this header. (Caught by -Wweak-vtables under Clang.)
     virtual void anchor() const;
-    const std::string detail;
     const std::string sourceref; // Source location where the exception was raised
+    std::string messagebuf;
+};
 
-    // Internal error code - should be interpreted as a value from #include <cerrno>
-    // should never be 0.
-    const ErrorCode errorcode;
+// TODO: the classes below  are dying for templatization, but I don't know of a good pattern to
+// instantiate a template with string literals that isn't hella ugly.
+
+/**
+ * Thrown when a file is read that doesn't have a valid fingerprint and one
+ * was expected
+ */
+class InvalidFingerprintException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    InvalidFingerprintException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::IncompatibleFileVersion; }
+    std::string GetCodeDescription() const override
+    {
+        return "Fingerprint did not match the expected value";
+    }
+};
+
+/**
+ * Thrown when we try to read a file that contains a valid fingerprint, but the file
+ * was generated with a version of OSRM that is incompatible
+ */
+class IncompatileFileVersionException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    IncompatileFileVersionException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::IncompatibleFileVersion; }
+    std::string GetCodeDescription() const override
+    {
+        return "File is incompatible with this version of OSRM";
+    }
+};
+
+/**
+ * Thrown when a file we expected to find is not there
+ */
+class MissingFileException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    MissingFileException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::MissingFile; }
+    std::string GetCodeDescription() const override { return "File is missing"; }
+};
+
+/**
+ * Thrown when there is any kind of problem reading from a file.  This includes
+ * failure to open a file (i.e. because of file permissions)
+ */
+class FileReadException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    FileReadException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::FileReadError; }
+    std::string GetCodeDescription() const override { return "Problem reading from file"; }
+};
+
+/**
+ * Thrown when there is any kind of problem writing to a file.  This includes failure
+ * to create a file (i.e. because of space or permissions).
+ */
+class FileWriteException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    FileWriteException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::FileWriteError; }
+    std::string GetCodeDescription() const override { return "Problem writing to file"; }
+};
+
+/**
+ * Occurs when there is some other kind of I/O problem - error accessing the filesystem,
+ * reading metadata, etc
+ */
+class IOException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    IOException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::FileIOError; }
+    std::string GetCodeDescription() const override { return "I/O problem"; }
+};
+
+/**
+ * Thrown when we unexpectedly reach the end of file.  Usually indicates
+ * that a file was truncated outside OSRM somehow, or the header has
+ * become corrupt and the object count is incorrect.
+ */
+class UnexpectedEndOfFileException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    UnexpectedEndOfFileException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::UnexpectedEndOfFile; }
+    std::string GetCodeDescription() const override { return "Unexpected end of file"; }
+};
+
+/**
+ * Thrown when someone tries to load a dataset in CoreCH mode but the dataset
+ * is not a CoreCH dataset.
+ */
+class IncompatibleDatasetException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    IncompatibleDatasetException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::IncompatibleDataset; }
+    std::string GetCodeDescription() const override
+    {
+        return "The dataset you are trying to load is not compatible with the routing algorithm "
+               "you want to use.";
+    }
+};
+
+/**
+ * Thrown when the algorithm name supplied by the user doesn't match a known type
+ */
+class UnknownAlgorithmException : public runtime_error
+{
+    using Base = runtime_error;
+    using Base::Base;
+
+  public:
+    UnknownAlgorithmException(const std::string &message, const std::string &sourceref)
+        : Base(message, sourceref, GetCodeDescription())
+    {
+    }
+    ErrorCode GetCode() const override { return ErrorCode::UnknownAlgorithm; }
+    std::string GetCodeDescription() const override { return "Unrecognized algorithm"; }
 };
 }
 }

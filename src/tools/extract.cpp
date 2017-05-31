@@ -12,8 +12,8 @@
 #include <exception>
 #include <new>
 
+#include "osrm/exception.hpp"
 #include "util/meminfo.hpp"
-#include "osrm/errorcodes.hpp"
 
 using namespace osrm;
 
@@ -162,15 +162,31 @@ int main(int argc, char *argv[]) try
         return EXIT_FAILURE;
     }
 
-    auto extractor_result = osrm::extract(extractor_config);
+    osrm::extract(extractor_config);
 
     util::DumpSTXXLStats();
     util::DumpMemoryStats();
 
-    return extractor_result == NoError ? EXIT_SUCCESS : static_cast<int>(extractor_result);
+    return EXIT_SUCCESS;
+}
+catch (const osrm::util::runtime_error &e)
+{
+    util::DumpSTXXLStats();
+    util::DumpMemoryStats();
+    util::Log(logERROR) << e.what();
+    return static_cast<int>(e.GetCode());
+}
+catch (const std::system_error &e)
+{
+    util::DumpSTXXLStats();
+    util::DumpMemoryStats();
+    util::Log(logERROR) << e.what();
+    return e.code().value();
 }
 catch (const std::bad_alloc &e)
 {
+    util::DumpSTXXLStats();
+    util::DumpMemoryStats();
     util::Log(logERROR) << "[exception] " << e.what();
     util::Log(logERROR) << "Please provide more memory or consider using a larger swapfile";
     return EXIT_FAILURE;

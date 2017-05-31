@@ -1,6 +1,7 @@
 #include "partition/partition_config.hpp"
 #include "partition/partitioner.hpp"
 
+#include "util/exception.hpp"
 #include "util/log.hpp"
 #include "util/meminfo.hpp"
 #include "util/timing_util.hpp"
@@ -238,8 +239,15 @@ int main(int argc, char *argv[]) try
 
     return exitcode;
 }
+catch (const osrm::util::runtime_error &e)
+{
+    util::DumpMemoryStats();
+    util::Log(logERROR) << e.what();
+    return static_cast<int>(e.GetCode());
+}
 catch (const std::bad_alloc &e)
 {
+    util::DumpMemoryStats();
     util::Log(logERROR) << "[exception] " << e.what();
     util::Log(logERROR) << "Please provide more memory or consider using a larger swapfile";
     return EXIT_FAILURE;

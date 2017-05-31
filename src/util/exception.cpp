@@ -17,6 +17,6 @@ namespace util
 {
 
 void exception::anchor() const {}
-void internal_exception::anchor() const {}
+void runtime_error::anchor() const {}
 }
 }

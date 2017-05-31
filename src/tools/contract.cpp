@@ -194,9 +194,18 @@ int main(int argc, char *argv[]) try
 
     return EXIT_SUCCESS;
 }
+catch (const osrm::util::runtime_error &e)
+{
+    util::DumpSTXXLStats();
+    util::DumpMemoryStats();
+    util::Log(logERROR) << e.what();
+    return static_cast<int>(e.GetCode());
+}
 catch (const std::bad_alloc &e)
 {
-    util::Log(logERROR) << "[exception] " << e.what();
+    util::DumpSTXXLStats();
+    util::DumpMemoryStats();
+    util::Log(logERROR) << e.what();
     util::Log(logERROR) << "Please provide more memory or consider using a larger swapfile";
     return EXIT_FAILURE;
 }
