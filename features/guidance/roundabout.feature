@@ -838,6 +838,6 @@ Feature: Basic Roundabout
             | dm      | tertiary |            |        |           |
 
         When I route I should get
-            | from | to | route                                | turns                                                              | distance |
-            | e    | k  | ebdfghl,ebdfghl,ebdfghl,gi,jhik,jhik | depart,rotary-exit-1,rotary-exit-1,invalid right,turn right,arrive | 119m     |
-            | 1    | k  | ebdfghl,ebdfghl,gi,jhik,jhik         | depart,rotary-exit-1,invalid right,turn right,arrive               | 89m      |
+            | from | to | route                             | turns                                                | distance |
+            | e    | k  | ebdfghl,ebdfghl,ebdfghl,jhik,jhik | depart,rotary-exit-1,rotary-exit-1,turn right,arrive | 119m     |
+            | 1    | k  | ebdfghl,ebdfghl,jhik,jhik         | depart,rotary-exit-1,turn right,arrive               | 89m      |
